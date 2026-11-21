@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="ru">
+    <head>
+        <link rel="manifest"
+        href="manifest.json">
+        <meta name="theme-color"
+        content="#00cc66">
+        <meta name="viewport"
+        content="width=device-width,
+        initial-scale=1.0">
+        <meta charset="UTF-8"
+        <title>Snake pro</title>
+        <style>
+            body {
+                background-color: #1a1a1a;
+                color: #fff;
+                font-family: 'Segoe UI', Tahoma, Geneva, Vardana, sans-serif;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                height: 100vh;
+                margin: 0;
+                overflow: hidden;
+            }
+            h1 {
+                margin-bottom: 10px;
+                font-size: 2rem;
+                text-shadow: 0 0 10px rgba(76, 175, 80, 0.5)
+            }
+            #score-board {
+                font-size: 1.5rem;
+                margin-bottom: 15px;
+            }
+            canvas {
+                background-color: #000;
+                border: 4px solid #4CAF50;
+                box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+            }
+            </style>
+<link rel="icon" type="image/png" href="icons/snake-icon-192.png">
+</head>
+    <body>
+
+        <h1>Змейка</h1>
+        <div id="score-board">Счёт: <span id="score">0</span></div>
+        <div id="record-board">Рекорд: <span id="record">0</span></div>
+        <div id="level-board">
+            Уровень: <span id="level">1</span>
+        </div>
+        <canvas id="gameCanvas" width="400" height="400"></canvas>
+        <div style="display: grid; grid-template-columns: repeat(3, 65px); gap: 8px; justify-content: center; margin-top: 15px;">
+        <div></div>
+        <button onclick="setDir(0, -1)" style="height: 60px; font-size: 24px; background: #222; color: #4CAF50; border: 2px solid #4CAF50; border-radius: 12px;">&#9650;</button>
+        <div></div>
+        <button onclick="setDir(-1, 0)" style="height: 60px; font-size: 24px; background: #222; color: #4CAF50; border: 2px solid #4CAF50; border-radius: 12px;">&#9664;</button>
+        <button onclick="setDir(0, 1)" style="height: 60px; font-size: 24px; background: #222; color: #4CAF50; border: 2px solid #4CAF50; border-radius: 12px;">&#9660;</button>
+        <button onclick="setDir(1, 0)" style="height: 60px; font-size: 24px; background: #222; color: #4CAF50; border: 2px solid #4CAF50; border-radius: 12px;">&#9654;</button>
+        </div>
+    <script>
+            const canvas = document.getElementById("gameCanvas");
+            canvas.width = 320;
+            canvas.height = 320;
+
+            const ctx = canvas.getContext("2d");
+            const scoreElement = document.getElementById("score");
+            const recordElement = document.getElementById("record");
+            let record = Number(localStorage.getItem("snakeRecord")) || 0;
+            recordElement.innerText = record;
+            const levelElement = document.getElementById("level");
+            // Размер одной ячейки сетки и скорость игры
+            const gridSize = 20;
+            const tileCount = canvas.width / gridSize;
+            let gameSpeed = 100; 
+            let level = 1;// Обновление каждые 100 мс 
+
+            // Координаты еды
+            let food = { x: 5, y: 5 };
+            let snake = [
+                { x: 10, y: 10},
+                { x: 9, y: 10},
+                { x: 8, y: 10}
+            ]
+            // Скорость перемещения (направления движения)
+            let dx = 1;
+            let dy = 0;
+
+            // Текущий счёт
+            let score = 0;
+            let changingDirection = false;
+            function updateLevel() {
+                const newLevel = 
+                Math.floor(score / 50) + 1;
+                if (newLevel !== level) {
+                    level = newLevel;
+                    levelElement.innerText = 
+                    level;
+                    gameSpeed = Math.max(
+                        40,
+                        100 - (level - 1) * 10
+                    );
+                }
+            }
+            // Главный игровой цикл
+            function main() 
+               {
+                if (hasGameEnded()) {
+                    resetGame();
+                    return;
+                }
+                changingDirection = false;
+                clearCanvas();
+                drawFood();
+                moveSnake();
+                drawSnake();
+
+                setTimeout(main, gameSpeed)
+            }
+
+            // Очистка игрового поля
+            function clearCanvas() {
+                ctx.fillStyle = "#000";
+                ctx.fillRect(0, 0, canvas.width, canvas.height)
+            }
+
+            //Рисование змейки
+            function drawSnake() {
+                snake.forEach((part, index) => {
+                    // Голова змейки чуть светлее, тело темнее
+                    ctx.fillStyle = index === 0 ? "#4CAF50" : "#2e7d32";
+                    ctx.strokeStyle = "#000";
+                    ctx.fillRect(part.x * gridSize, part.y * gridSize, gridSize, gridSize);
+                    ctx.strokeRect(part.x * gridSize, part.y * gridSize, gridSize, gridSize);
+                });
+            }
+
+            // Движение змейки
+            function moveSnake() {
+                // Создаем новую голову на основе направленя движеня
+                const head = { x: snake[0].x + dx, y: snake[0].y + dy };
+                snake.unshift(head);
+
+                // Проверяем, съелали змейуа еду
+                const hasEatenFood = snake[0].x === food.x && snake[0].y === food.y;
+                if (hasEatenFood) {
+                    score += 10;
+                    scoreElement.innerText = score;
+                    if (score > record) {record = score;
+                        recordElement.innerText = record;
+                        localStorage.setItem("snakeRecord", record)
+                    }
+                    updateLevel();
+                    generateFood();
+                } else {
+                    // Если еду не съели, удаляем последний елемент хвоста
+                    snake.pop();
+                }
+            }
+
+            // Случайная генерация еды
+            function generateFood() {
+                food.x = Math.floor(Math.random() * tileCount);
+                food.y = Math.floor(Math.random() * tileCount);
+
+                // Проверяем, чтобы еда не появилась внутри змейки
+                snake.forEach(part => {
+                    const hasEaten = part.x === food.x && part.y ===food.y
+                    if (hasEaten) generateFood();
+                }); 
+            }
+
+            // Рисование еды
+            function drawFood() {
+                ctx.fillStyle = "#FF5252";
+                ctx.fillRect(food.x * gridSize, food.y * gridSize, gridSize, gridSize);
+            }
+
+            // Проверка на столкновения (конец игры)
+            function hasGameEnded() {
+                // Столкновение с самим собой
+                for (let i = 1; i < snake.length; i++) {
+                    if (snake[i].x === snake[0].x && snake[i].y === snake[0].y)
+                        return true;
+                    
+                }
+                if (snake[0].x < 0) return true;
+                if (snake[0].x >= tileCount) return true;
+                if (snake[0].y < 0) return true;
+                if (snake[0].y >= tileCount) return true;
+
+                return false;
+            }
+
+            function resetGame() {
+                snake = [
+                    { x: 10, y: 10},
+                    { x: 9, y: 10},
+                    { x:8, y: 10}
+                ]
+                food = { x: 5, y: 5 };
+                dx = 1;
+                dy = 0;
+                score = 0;
+                 scoreElement.innerText = score;
+                 main();
+            }
+        
+            function changeDirection(event) {
+                const LEFT_KEY = 37;
+                const UP_KEY = 38;
+                const DOWN_KEY = 40;
+                const RIGHT_KEY = 39;
+
+                if (changingDirection) return;
+
+                const keyPressed = event.keyCode;
+                const goingUp = dy === -1;
+                const goingDown = dy === 1;
+                const goingRight = dx === 1;
+                const goingLeft = dx === -1;
+
+                if (keyPressed === LEFT_KEY && !goingRight) {
+                dx = -1; dy = 0; changingDirection = true;
+            }
+            if (keyPressed === UP_KEY && !goingDown) {
+                dx = 0; dy = -1; changingDirection = true;
+            }
+            if (keyPressed === RIGHT_KEY && !goingLeft) {
+                dx = 1; dy = 0; changingDirection = true;
+            }
+            if (keyPressed === DOWN_KEY && !goingUp) {
+                dx = 0; dy = 1; changingDirection = true;
+            }
+            }
+            document.addEventListener("keydown", changeDirection);
+            generateFood();
+            main();
+            if ("serviceWorker" in navigator) {
+                window.addEventListener("load",() => {
+                    navigator.serviceWorker.register("./service-worker.js")
+                    .then(() =>
+                    console.log("SnakePro успешно поключён!"))
+                    .catch(error =>
+                    console.log("Ошибка;", error));
+                });
+            };
+        </script>
+            </body>
+            </html>
