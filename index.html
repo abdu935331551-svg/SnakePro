@@ -97,7 +97,7 @@
                     level;
                     gameSpeed = Math.max(
                         40,
-                        100 - (level - 1) * 10
+                        300 - (level - 1) * 5
                     );
                 }
             }
@@ -233,16 +233,16 @@
             }
             }
             document.addEventListener("keydown", changeDirection);
-        function setDir(newDx, newDy) {
-            if (changingDirection) return;
-            if (newDx === -1 && dx === 1) return;
-            if (newDx === 1 && dx === -1) return;
-            if (newDy === -1 && dy === 1) return;
-            if (newDy === 1 && dy === -1) return;
-            dx = newDx;
-            dy = newDy;
-            changingDirection = true;
-        }
+            function setDir(newDx, newDy) {
+                if (changingDirection) return;
+                if (newDx === -1 && dx === 1) return;
+                if (newDx === 1 && dx === -1) return;
+                if (newDy === -1 && dy === 1) return;
+                if (newDy === 1 && dy === -1) return;
+                dx = newDx;
+                dy = newDy;
+                changingDirection = true;
+            }
             generateFood();
             main();
             if ("serviceWorker" in navigator) {
